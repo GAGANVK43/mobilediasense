@@ -126,8 +126,6 @@ class AssessmentDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
-
-            const DisclaimerCard(),
           ],
         ),
       ),

@@ -211,7 +211,7 @@ class _FoodAnalysisScreenState extends ConsumerState<FoodAnalysisScreen> {
                         Expanded(
                           child: MetricTile(
                             title: 'Glycemic Index',
-                            value: '',
+                            value: result.averageGlycemicIndex.toString(),
                             unit: 'GI',
                             icon: Icons.speed_rounded,
                             iconColor: AppColors.primary,
@@ -232,8 +232,6 @@ class _FoodAnalysisScreenState extends ConsumerState<FoodAnalysisScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
             ],
-
-            const DisclaimerCard(),
           ],
         ),
       ),

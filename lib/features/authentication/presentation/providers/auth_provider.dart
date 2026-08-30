@@ -69,6 +69,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> checkAuthStatus() async {
     final isAuth = await _repository.isAuthenticated();
     if (isAuth) {
+      final cachedEmail = _storage.getUserEmail();
+      final cachedName = _storage.getUserName();
+      final cachedId = _storage.getUserId();
+      // Restore authenticated session immediately from local storage
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: UserModel(
+          id: cachedId ?? 0,
+          fullName: cachedName ?? 'User',
+          email: cachedEmail ?? '',
+        ),
+      );
+
+      // Silently refresh profile in background
       try {
         final profile = await _repository.getProfile();
         state = state.copyWith(
@@ -76,7 +90,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           user: profile,
         );
       } catch (e) {
-        state = state.copyWith(status: AuthStatus.unauthenticated);
+        // Network / cold-start error: keep user authenticated with cached credentials
+        if (e is ApiException && e.statusCode == 401) {
+          await _repository.logout();
+          state = state.copyWith(status: AuthStatus.unauthenticated);
+        }
       }
     } else {
       state = state.copyWith(status: AuthStatus.unauthenticated);

@@ -81,6 +81,16 @@ class _PdfReportsTabView extends ConsumerWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: HealthCard(
+                onTap: () {
+                  context.push('/prediction/result', extra: {
+                    'id': p.id ?? (index + 1),
+                    'assessment_id': p.assessmentId,
+                    'prediction': p.prediction,
+                    'risk_percentage': p.riskPercentage,
+                    'confidence': p.confidence,
+                    'recommendation': p.recommendation,
+                  });
+                },
                 child: Row(
                   children: [
                     Container(
@@ -97,14 +107,21 @@ class _PdfReportsTabView extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'DiaSense Health Report #',
+                            'DiaSense Health Report #$predId',
                             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Risk: % • ',
+                            'Risk: ${p.riskPercentage.toStringAsFixed(1)}% • ${p.prediction}',
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
                           ),
+                          if (p.createdAt != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              Formatters.formatDateTime(p.createdAt),
+                              style: const TextStyle(fontSize: 11, color: AppColors.textMutedLight),
+                            ),
+                          ],
                         ],
                       ),
                     ),

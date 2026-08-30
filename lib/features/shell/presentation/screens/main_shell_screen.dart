@@ -37,14 +37,14 @@ class MainShellScreen extends StatelessWidget {
             label: 'Health',
           ),
           NavigationDestination(
-            icon: Icon(Icons.psychology_outlined),
-            selectedIcon: Icon(Icons.psychology_rounded, color: AppColors.primary),
-            label: 'AI & Nutrition',
+            icon: Icon(Icons.restaurant_menu_outlined),
+            selectedIcon: Icon(Icons.restaurant_menu_rounded, color: AppColors.primary),
+            label: 'Food AI',
           ),
           NavigationDestination(
             icon: Icon(Icons.local_hospital_outlined),
             selectedIcon: Icon(Icons.local_hospital_rounded, color: AppColors.primary),
-            label: 'Care & Reports',
+            label: 'Care',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

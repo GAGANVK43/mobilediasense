@@ -37,25 +37,25 @@ class PredictionResultScreen extends ConsumerWidget {
     final factors = (resultData?['contributing_factors'] as List?) ?? [
       {
         'factor': 'Blood Glucose',
-        'value': ' mg/dL',
+        'value': '${resultData?['glucose'] ?? 115} mg/dL',
         'impact': (resultData?['glucose'] as num? ?? 115) > 140 ? 'High' : (resultData?['glucose'] as num? ?? 115) > 100 ? 'Elevated' : 'Optimal',
         'description': 'Fasting blood glucose level relative to normal metabolic baseline (<100 mg/dL).'
       },
       {
         'factor': 'BMI Score',
-        'value': ' kg/m²',
+        'value': '${(resultData?['bmi'] as num?)?.toStringAsFixed(1) ?? '24.2'} kg/m²',
         'impact': (resultData?['bmi'] as num? ?? 24.2) > 30 ? 'High' : (resultData?['bmi'] as num? ?? 24.2) > 25 ? 'Moderate' : 'Optimal',
         'description': 'Body Mass Index calculated from height and weight.'
       },
       {
         'factor': 'Blood Pressure',
-        'value': ' mmHg',
+        'value': '${resultData?['blood_pressure'] ?? 75} mmHg',
         'impact': (resultData?['blood_pressure'] as num? ?? 75) > 90 ? 'Elevated' : 'Optimal',
         'description': 'Diastolic arterial pressure at rest.'
       },
       {
         'factor': 'Insulin',
-        'value': ' µU/mL',
+        'value': '${resultData?['insulin'] ?? 80} µU/mL',
         'impact': 'Optimal',
         'description': 'Fasting serum insulin level.'
       },
@@ -119,7 +119,7 @@ class PredictionResultScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Assessment ID:  | Patient: ',
+                    'Assessment ID: $assessmentId | Patient: $userName',
                     style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
                   ),
                 ],
@@ -138,7 +138,7 @@ class PredictionResultScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Prediction Confidence: %',
+                    'Prediction Confidence: ${confidence.toStringAsFixed(1)}%',
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -154,7 +154,7 @@ class PredictionResultScreen extends ConsumerWidget {
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        ' / 100',
+                        '$healthScore / 100',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -336,9 +336,6 @@ class PredictionResultScreen extends ConsumerWidget {
               onPressed: () => context.go('/home'),
             ),
             const SizedBox(height: AppSpacing.lg),
-
-            // 6. Safety Disclaimer
-            const DisclaimerCard(),
           ],
         ),
       ),

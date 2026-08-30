@@ -191,8 +191,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
             ),
             const SizedBox(height: AppSpacing.lg),
-
-            const DisclaimerCard(),
           ],
         ),
       ),

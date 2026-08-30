@@ -225,8 +225,6 @@ class _AssessmentWizardScreenState extends ConsumerState<AssessmentWizardScreen>
                     if (_currentStep == 1) _buildStep1(),
                     if (_currentStep == 2) _buildStep2(),
                     if (_currentStep == 3) _buildStep3(),
-                    const SizedBox(height: AppSpacing.lg),
-                    const DisclaimerCard(),
                   ],
                 ),
               ),

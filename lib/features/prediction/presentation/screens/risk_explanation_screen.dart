@@ -114,9 +114,6 @@ class RiskExplanationScreen extends StatelessWidget {
               onPressed: () => context.push('/chatbot'),
             ),
             const SizedBox(height: AppSpacing.lg),
-
-            // Medical Disclaimer
-            const DisclaimerCard(),
           ],
         ),
       ),

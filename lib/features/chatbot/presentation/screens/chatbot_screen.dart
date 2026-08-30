@@ -87,14 +87,6 @@ class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Quick Disclaimer Header
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
-              child: DisclaimerCard(
-                customText: 'AI recommendations are informational and not medical diagnoses.',
-              ),
-            ),
-
             // Messages List
             Expanded(
               child: ListView.builder(

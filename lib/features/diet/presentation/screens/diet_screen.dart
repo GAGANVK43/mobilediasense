@@ -1,8 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../core/widgets/disclaimer_card.dart';
 import '../../../../core/widgets/health_card.dart';
 
 class DietScreen extends ConsumerStatefulWidget {
@@ -17,13 +17,54 @@ class _DietScreenState extends ConsumerState<DietScreen> {
   String _selectedDay = 'Monday';
   bool _isVegetarian = true;
 
-  // Daily Streak Habit Tracker
-  int _streakCount = 3;
+  // Daily Streak Habit Tracker (Persistent per calendar day)
+  int _streakCount = 1;
   bool _streakClaimed = false;
-  bool _waterGoal = true;
-  bool _stepGoal = true;
+  bool _waterGoal = false;
+  bool _stepGoal = false;
   bool _fiberGoal = false;
   bool _glucoseGoal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStreakState();
+  }
+
+  String _getTodayKey() {
+    final now = DateTime.now();
+    return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> _loadStreakState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _getTodayKey();
+    final lastClaimed = prefs.getString('diet_last_streak_date');
+    final savedStreak = prefs.getInt('diet_streak_count') ?? 1;
+
+    setState(() {
+      _streakCount = savedStreak;
+      if (lastClaimed == today) {
+        _streakClaimed = true;
+        _waterGoal = true;
+        _stepGoal = true;
+        _fiberGoal = true;
+        _glucoseGoal = true;
+      } else {
+        _streakClaimed = false;
+        _waterGoal = prefs.getBool('diet_water_$today') ?? false;
+        _stepGoal = prefs.getBool('diet_step_$today') ?? false;
+        _fiberGoal = prefs.getBool('diet_fiber_$today') ?? false;
+        _glucoseGoal = prefs.getBool('diet_glucose_$today') ?? false;
+      }
+    });
+  }
+
+  Future<void> _saveHabitState(String habit, bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _getTodayKey();
+    await prefs.setBool('diet_${habit}_$today', val);
+  }
 
   final Map<String, Map<String, String>> _weeklyMealsVeg = {
     'Monday': {
@@ -129,23 +170,31 @@ class _DietScreenState extends ConsumerState<DietScreen> {
     },
   };
 
-  void _claimStreak() {
+  Future<void> _claimStreak() async {
     if (_streakClaimed) return;
+    final prefs = await SharedPreferences.getInstance();
+    final today = _getTodayKey();
+    final newStreak = _streakCount + 1;
+    await prefs.setString('diet_last_streak_date', today);
+    await prefs.setInt('diet_streak_count', newStreak);
+
     setState(() {
-      _streakCount++;
+      _streakCount = newStreak;
       _streakClaimed = true;
       _waterGoal = true;
       _stepGoal = true;
       _fiberGoal = true;
       _glucoseGoal = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('🔥 Streak Upgraded to $_streakCount Days! Daily tasks completed! 🎉'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🔥 Streak Upgraded to $_streakCount Days! Daily tasks completed! 🎉'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -218,10 +267,22 @@ class _DietScreenState extends ConsumerState<DietScreen> {
                   const SizedBox(height: AppSpacing.md),
 
                   // 4 Habit Checkboxes
-                  _buildHabitRow('💧 3L Daily Water Intake', _waterGoal, (v) => setState(() => _waterGoal = v ?? false)),
-                  _buildHabitRow('🚶 8,000 Steps Physical Activity', _stepGoal, (v) => setState(() => _stepGoal = v ?? false)),
-                  _buildHabitRow('🥗 High-Fiber Leafy Greens', _fiberGoal, (v) => setState(() => _fiberGoal = v ?? false)),
-                  _buildHabitRow('🩸 Blood Glucose Logged', _glucoseGoal, (v) => setState(() => _glucoseGoal = v ?? false)),
+                  _buildHabitRow('💧 3L Daily Water Intake', _waterGoal, (v) {
+                    setState(() => _waterGoal = v ?? false);
+                    _saveHabitState('water', v ?? false);
+                  }),
+                  _buildHabitRow('🚶 8,000 Steps Physical Activity', _stepGoal, (v) {
+                    setState(() => _stepGoal = v ?? false);
+                    _saveHabitState('step', v ?? false);
+                  }),
+                  _buildHabitRow('🥗 High-Fiber Leafy Greens', _fiberGoal, (v) {
+                    setState(() => _fiberGoal = v ?? false);
+                    _saveHabitState('fiber', v ?? false);
+                  }),
+                  _buildHabitRow('🩸 Blood Glucose Logged', _glucoseGoal, (v) {
+                    setState(() => _glucoseGoal = v ?? false);
+                    _saveHabitState('glucose', v ?? false);
+                  }),
 
                   const SizedBox(height: AppSpacing.sm),
                   SizedBox(
@@ -348,8 +409,6 @@ class _DietScreenState extends ConsumerState<DietScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-
-            const DisclaimerCard(),
           ],
         ),
       ),

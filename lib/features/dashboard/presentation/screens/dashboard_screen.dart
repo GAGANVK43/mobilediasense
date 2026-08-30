@@ -262,8 +262,6 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
-
-                const DisclaimerCard(),
               ],
             );
           },

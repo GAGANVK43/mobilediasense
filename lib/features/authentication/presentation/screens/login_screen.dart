@@ -156,7 +156,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                const DisclaimerCard(),
               ],
             ),
           ),
