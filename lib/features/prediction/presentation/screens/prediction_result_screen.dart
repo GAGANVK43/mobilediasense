@@ -18,6 +18,7 @@ class PredictionResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final reportState = ref.watch(reportNotifierProvider);
     final userName = authState.user?.fullName ?? 'Patient';
 
     final id = resultData?['id'] ?? 1;
@@ -299,15 +300,28 @@ class PredictionResultScreen extends ConsumerWidget {
                 Expanded(
                   flex: 3,
                   child: AppButton(
-                    text: 'Download PDF Report',
+                    text: reportState.isDownloading ? 'Downloading...' : 'Download PDF Report',
                     icon: Icons.picture_as_pdf_outlined,
-                    onPressed: () {
-                      final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 1;
-                      ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(intPredId);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Downloading Clinical PDF Report...')),
-                      );
-                    },
+                    isLoading: reportState.isDownloading,
+                    onPressed: reportState.isDownloading
+                        ? null
+                        : () async {
+                            final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 0;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('⏳ Generating & Downloading Certified PDF Report...')),
+                            );
+                            await ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(intPredId);
+                            final state = ref.read(reportNotifierProvider);
+                            if (state.error != null && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Download failed: ${state.error}'), backgroundColor: Colors.red),
+                              );
+                            } else if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('✅ Report PDF downloaded successfully!'), backgroundColor: Colors.green),
+                              );
+                            }
+                          },
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -317,10 +331,12 @@ class PredictionResultScreen extends ConsumerWidget {
                     text: 'Share',
                     icon: Icons.share_rounded,
                     isOutlined: true,
-                    onPressed: () {
-                      final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 1;
-                      ref.read(reportNotifierProvider.notifier).sharePdfReport(intPredId);
-                    },
+                    onPressed: reportState.isDownloading
+                        ? null
+                        : () {
+                            final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 0;
+                            ref.read(reportNotifierProvider.notifier).sharePdfReport(intPredId);
+                          },
                   ),
                 ),
               ],

@@ -4,6 +4,7 @@ import '../../../../core/network/api_response.dart';
 import '../models/prediction_model.dart';
 
 abstract class PredictionRemoteDataSource {
+  Future<PredictionResultModel> createPrediction(Map<String, dynamic> data);
   Future<PredictionResultModel> getLatestPrediction();
   Future<List<PredictionResultModel>> getPredictionHistory();
   Future<Map<String, dynamic>> getModelAccuracy();
@@ -13,6 +14,19 @@ class PredictionRemoteDataSourceImpl implements PredictionRemoteDataSource {
   final DioClient _client;
 
   PredictionRemoteDataSourceImpl(this._client);
+
+  @override
+  Future<PredictionResultModel> createPrediction(Map<String, dynamic> data) async {
+    final response = await _client.post(ApiEndpoints.prediction, data: data);
+    final apiRes = ApiResponse<PredictionResultModel>.fromJson(
+      response.data,
+      (json) => PredictionResultModel.fromJson(json as Map<String, dynamic>),
+    );
+    if (!apiRes.success || apiRes.data == null) {
+      throw Exception(apiRes.message);
+    }
+    return apiRes.data!;
+  }
 
   @override
   Future<PredictionResultModel> getLatestPrediction() async {

@@ -223,7 +223,7 @@ class DashboardScreen extends ConsumerWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: AppSpacing.sm,
                   mainAxisSpacing: AppSpacing.sm,
-                  childAspectRatio: 1.3,
+                  childAspectRatio: 1.02,
                   children: [
                     _buildServiceCard(
                       'AI Prediction Engine',
@@ -299,11 +299,25 @@ class DashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight)),
-              const SizedBox(height: 6),
-              Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: accent)),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: accent)),
+              ),
               const SizedBox(height: 2),
-              Text(sub, style: const TextStyle(fontSize: 11, color: AppColors.textSecondaryLight)),
+              Text(
+                sub,
+                style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondaryLight),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
@@ -341,9 +355,19 @@ class DashboardScreen extends ConsumerWidget {
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 6),
-            Text(title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(desc, style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondaryLight), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              desc,
+              style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryLight, height: 1.2),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),

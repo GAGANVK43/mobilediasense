@@ -8,6 +8,10 @@ class PredictionRepositoryImpl implements PredictionRepository {
   PredictionRepositoryImpl(this._remoteDataSource);
 
   @override
+  Future<PredictionResultModel> createPrediction(Map<String, dynamic> data) =>
+      _remoteDataSource.createPrediction(data);
+
+  @override
   Future<PredictionResultModel> getLatestPrediction() => _remoteDataSource.getLatestPrediction();
 
   @override

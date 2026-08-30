@@ -10,6 +10,7 @@ import '../../../../core/widgets/health_card.dart';
 import '../../data/models/assessment_model.dart';
 import '../providers/assessment_wizard_provider.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../prediction/presentation/providers/prediction_provider.dart';
 
 class AssessmentWizardScreen extends ConsumerStatefulWidget {
   const AssessmentWizardScreen({super.key});
@@ -151,15 +152,38 @@ class _AssessmentWizardScreenState extends ConsumerState<AssessmentWizardScreen>
         age: age,
       );
 
-      final repo = ref.read(assessmentRepositoryProvider);
-      final result = await repo.createAssessment(assessment);
+      final predRepo = ref.read(predictionRepositoryProvider);
+      final predResult = await predRepo.createPrediction({
+        'pregnancies': pregnancies,
+        'glucose': glucose,
+        'blood_pressure': bp,
+        'skin_thickness': skin,
+        'insulin': insulin,
+        'bmi': _bmi,
+        'diabetes_pedigree_function': dpf,
+        'age': age,
+      });
 
       if (mounted) {
         ref.invalidate(dashboardDataProvider);
+        ref.invalidate(predictionHistoryProvider);
         _showSnackbar('✅ AI Risk Assessment Complete!');
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
-          context.pushReplacement('/prediction/result', extra: result);
+          context.pushReplacement('/prediction/result', extra: {
+            'id': predResult.id,
+            'assessment_id': predResult.assessmentId,
+            'prediction': predResult.prediction,
+            'risk_percentage': predResult.riskPercentage,
+            'confidence': predResult.confidence,
+            'recommendation': predResult.recommendation,
+            'contributing_factors': predResult.contributingFactors.map((f) => {
+              'factor': f.feature,
+              'value': f.score.toString(),
+              'impact': f.impact,
+              'description': f.description,
+            }).toList(),
+          });
         }
       }
     } catch (e) {

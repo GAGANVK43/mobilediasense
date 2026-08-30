@@ -63,11 +63,57 @@ class _PdfReportsTabView extends ConsumerWidget {
       error: (err, _) => Center(child: Text(err.toString())),
       data: (predictions) {
         if (predictions.isEmpty) {
-          return EmptyStateView(
-            title: 'No Clinical Reports',
-            description: 'Complete a diabetes screening to generate official downloadable PDF medical reports.',
-            actionText: 'Start Screening',
-            onAction: () => context.push('/assessment/wizard'),
+          return ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_outlined, color: Colors.white, size: 28),
+                    const SizedBox(width: AppSpacing.md),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Download Latest Medical Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13.5)),
+                          Text('Directly retrieve and view your latest clinical PDF', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: reportState.isDownloading
+                          ? null
+                          : () {
+                              ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(0);
+                            },
+                      icon: const Icon(Icons.download_rounded, size: 14),
+                      label: const Text('Download', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0F766E),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              EmptyStateView(
+                title: 'No Previous Screening History',
+                description: 'Take a new health assessment or download your latest report above.',
+                actionText: 'Start Assessment',
+                onAction: () => context.push('/assessment/wizard'),
+              ),
+            ],
           );
         }
 
