@@ -81,9 +81,9 @@ class HealthHistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // History List Header
+                // FIX H2: Was 'Recorded Assessments ()' — missing .length
                 Text(
-                  'Recorded Assessments ()',
+                  'Recorded Assessments (${assessments.length})',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -118,11 +118,13 @@ class HealthHistoryScreen extends ConsumerWidget {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Glucose:  mg/dL',
+                                      // FIX H2: Was 'Glucose:  mg/dL' — missing value
+                                      'Glucose: ${a.glucose.toStringAsFixed(0)} mg/dL',
                                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                                     ),
                                     Text(
-                                      'BMI: ',
+                                      // FIX H2: Was 'BMI: ' — missing value
+                                      'BMI: ${a.bmi.toStringAsFixed(1)}',
                                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textSecondaryLight),
                                     ),
                                   ],

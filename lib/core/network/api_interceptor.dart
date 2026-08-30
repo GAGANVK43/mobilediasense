@@ -13,9 +13,21 @@ class ApiInterceptor extends Interceptor {
   ) async {
     final token = await _storageService.getAccessToken();
     if (token != null && token.isNotEmpty) {
-      options.headers['Authorization'] = 'Bearer ';
+      // FIX C1: Token was fetched but never appended — root cause of all
+      // "Could not validate credentials" errors across every screen.
+      options.headers['Authorization'] = 'Bearer $token';
     }
     options.headers['Accept'] = 'application/json';
     return handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    // FIX H3: On 401 Unauthorized, clear stored session so user is
+    // redirected to login instead of being stuck in a permanent error loop.
+    if (err.response?.statusCode == 401) {
+      _storageService.clearSession();
+    }
+    return handler.next(err);
   }
 }

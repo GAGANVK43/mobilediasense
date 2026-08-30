@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/widgets/empty_state_view.dart';
@@ -101,6 +102,14 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
             description: 'Try searching for a different city or neighborhood location.',
           ),
         ] else ...[
+          // FIX H1: Show count of results found
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Text(
+              '${careState.facilities.length} facilities found',
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
+            ),
+          ),
           ...careState.facilities.map((fac) {
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -123,8 +132,9 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                             color: AppColors.primarySurface,
                             borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                           ),
+                          // FIX H1: Was ' km' (empty). Now shows actual distance.
                           child: Text(
-                            ' km',
+                            '${fac.distance.toStringAsFixed(1)} km',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
                           ),
                         ),
@@ -132,8 +142,20 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      fac.address ?? 'Medical Road',
+                      fac.address,
                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        fac.type,
+                        style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryLight),
+                      ),
                     ),
                     if (fac.phone != null) ...[
                       const SizedBox(height: 4),
@@ -143,6 +165,46 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                           const SizedBox(width: 4),
                           Text(fac.phone!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
+                      ),
+                    ],
+                    if (fac.openNow != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            fac.openNow! ? Icons.check_circle_outline : Icons.cancel_outlined,
+                            size: 14,
+                            color: fac.openNow! ? Colors.green : Colors.red,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            fac.openNow! ? 'Open 24/7' : 'Closed',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: fac.openNow! ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (fac.mapsUrl != null) ...[
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () async {
+                          final uri = Uri.parse(fac.mapsUrl!);
+                          if (await canLaunchUrl(uri)) await launchUrl(uri);
+                        },
+                        child: const Row(
+                          children: [
+                            Icon(Icons.directions_outlined, size: 14, color: AppColors.primary),
+                            SizedBox(width: 4),
+                            Text(
+                              'Get Directions',
+                              style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ],
