@@ -100,6 +100,36 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const FoodAnalysisScreen(),
       ),
       GoRoute(
+        path: '/food-analyzer',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const FoodAnalysisScreen(),
+      ),
+      GoRoute(
+        path: '/food',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const FoodAnalysisScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const HealthHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/reports',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ReportsAndCareScreen(),
+      ),
+      GoRoute(
+        path: '/nearby-care',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ReportsAndCareScreen(),
+      ),
+      GoRoute(
+        path: '/care',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ReportsAndCareScreen(),
+      ),
+      GoRoute(
         path: '/profile/edit',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const EditProfileScreen(),

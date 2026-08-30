@@ -73,17 +73,61 @@ class _PdfReportsTabView extends ConsumerWidget {
 
         return ListView.builder(
           padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: predictions.length,
+          itemCount: predictions.length + 1,
           itemBuilder: (context, index) {
-            final p = predictions[index];
-            final predId = p.id ?? (index + 1);
+            if (index == 0) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_outlined, color: Colors.white, size: 28),
+                    const SizedBox(width: AppSpacing.md),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Latest Health Assessment Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13.5)),
+                          Text('Directly generate & download your latest clinical report', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: reportState.isDownloading
+                          ? null
+                          : () {
+                              ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(0);
+                            },
+                      icon: const Icon(Icons.download_rounded, size: 14),
+                      label: const Text('Download', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0F766E),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final p = predictions[index - 1];
+            final predId = p.id ?? index;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: HealthCard(
                 onTap: () {
                   context.push('/prediction/result', extra: {
-                    'id': p.id ?? (index + 1),
+                    'id': p.id ?? index,
                     'assessment_id': p.assessmentId,
                     'prediction': p.prediction,
                     'risk_percentage': p.riskPercentage,

@@ -35,6 +35,132 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
     } catch (_) {}
   }
 
+  void _showLocationPickerSheet(BuildContext context, NearbyCareState careState) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Select Your Location', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // GPS Option (Swiggy / Zomato style)
+              InkWell(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ref.read(nearbyCareProvider.notifier).searchByCurrentGps();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.my_location_rounded, color: AppColors.primary, size: 22),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Use Current Location (GPS)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.primaryDark)),
+                            Text('Detect using device satellite GPS coordinates', style: TextStyle(fontSize: 11, color: AppColors.textSecondaryLight)),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Manual Search Field
+              TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Search city or area (e.g. Indiranagar, Whitefield)',
+                  hintStyle: const TextStyle(fontSize: 13),
+                  prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.arrow_forward, color: AppColors.primary),
+                    onPressed: () {
+                      final val = _searchCtrl.text.trim();
+                      if (val.isNotEmpty) {
+                        Navigator.pop(ctx);
+                        ref.read(nearbyCareProvider.notifier).searchCare(query: val, isManual: true);
+                      }
+                    },
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onSubmitted: (val) {
+                  if (val.trim().isNotEmpty) {
+                    Navigator.pop(ctx);
+                    ref.read(nearbyCareProvider.notifier).searchCare(query: val.trim(), isManual: true);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Popular Cities (Swiggy / Zomato style)
+              const Text('Popular Cities', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  'Bengaluru',
+                  'Mumbai',
+                  'New Delhi',
+                  'Hyderabad',
+                  'Chennai',
+                  'Mysuru',
+                  'Pune',
+                  'Kolkata',
+                ].map((city) {
+                  return ActionChip(
+                    avatar: const Icon(Icons.location_city_rounded, size: 14, color: AppColors.primary),
+                    label: Text(city, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+                    backgroundColor: Colors.grey.shade100,
+                    onPressed: () {
+                      _searchCtrl.text = city;
+                      Navigator.pop(ctx);
+                      ref.read(nearbyCareProvider.notifier).searchCare(query: city, isManual: true);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final careState = ref.watch(nearbyCareProvider);
@@ -43,49 +169,61 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        // 1. GPS Auto-detect Button Banner
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: isGps ? AppColors.primarySurface : AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: isGps ? AppColors.primary : AppColors.borderLight),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isGps ? Icons.my_location_rounded : Icons.location_searching_rounded,
-                color: isGps ? AppColors.primary : AppColors.textSecondaryLight,
-                size: 24,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isGps ? 'Using Current Device GPS' : 'Search by Current GPS',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isGps ? AppColors.primaryDark : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    Text(
-                      isGps ? 'Precise coordinates active' : 'Find hospitals closest to your exact position',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondaryLight),
-                    ),
-                  ],
+        // 1. Swiggy / Zomato Style Top Location Header
+        InkWell(
+          onTap: () => _showLocationPickerSheet(context, careState),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isGps ? AppColors.primarySurface : Colors.white,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              border: Border.all(color: isGps ? AppColors.primary : AppColors.borderLight),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: careState.isLoading
-                    ? null
-                    : () => ref.read(nearbyCareProvider.notifier).searchByCurrentGps(),
-                icon: const Icon(Icons.gps_fixed, size: 16),
-                label: const Text('Locate Me', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-              ),
-            ],
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isGps ? Icons.my_location_rounded : Icons.location_on_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            isGps ? 'GPS Location' : 'Selected Location',
+                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: AppColors.textSecondaryLight),
+                        ],
+                      ),
+                      Text(
+                        careState.searchQuery,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimaryLight),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _showLocationPickerSheet(context, careState),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                  child: const Text('Change', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),

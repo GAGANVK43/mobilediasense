@@ -159,7 +159,7 @@ class DashboardScreen extends ConsumerWidget {
                                 if (hasAssessment && latestPred != null) {
                                   context.push('/prediction/result', extra: latestPred);
                                 } else {
-                                  context.push('/assessment/wizard');
+                                  context.push('/reports');
                                 }
                               },
                               icon: const Icon(Icons.description_outlined, size: 18, color: Colors.white),
@@ -184,11 +184,19 @@ class DashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     _buildSnapshotCard('❤️ Health Score', '$healthScore / 100', 'Optimal Range', const Color(0xFFE11D48), () {
-                      if (latestPred != null) context.push('/prediction/result', extra: latestPred);
+                      if (latestPred != null) {
+                        context.push('/prediction/result', extra: latestPred);
+                      } else {
+                        context.push('/reports');
+                      }
                     }),
                     const SizedBox(width: AppSpacing.sm),
                     _buildSnapshotCard('🩸 Diabetes Risk', riskLevel, 'Prob: ' + riskPct.toStringAsFixed(1) + '%', const Color(0xFF0284C7), () {
-                      if (latestPred != null) context.push('/prediction/result', extra: latestPred);
+                      if (latestPred != null) {
+                        context.push('/prediction/result', extra: latestPred);
+                      } else {
+                        context.push('/reports');
+                      }
                     }),
                   ],
                 ),
@@ -196,7 +204,7 @@ class DashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     _buildSnapshotCard('⚖️ BMI Score', '$bmi kg/m²', 'Standard Range', const Color(0xFF059669), () {
-                      context.push('/assessment/wizard');
+                      context.push('/history');
                     }),
                     const SizedBox(width: AppSpacing.sm),
                     _buildSnapshotCard('📅 Screening', lastAssessed, 'Longitudinal Track', const Color(0xFF7C3AED), () {
@@ -243,7 +251,7 @@ class DashboardScreen extends ConsumerWidget {
                       'Scan meals with camera to analyze glycemic load & calories.',
                       Icons.camera_alt_outlined,
                       const Color(0xFF10B981),
-                      () => context.push('/food-analyzer'),
+                      () => context.push('/food-analysis'),
                     ),
                     _buildServiceCard(
                       'Find Care Near You',
