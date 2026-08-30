@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
 import '../../data/datasources/report_remote_datasource.dart';
 import '../../data/repositories/report_repository_impl.dart';
@@ -38,7 +39,25 @@ class ReportNotifier extends StateNotifier<ReportDownloadState> {
     } catch (e) {
       state = ReportDownloadState(
         isDownloading: false,
-        error: e.toString().replaceAll('Exception: ', ''),
+        error: e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', ''),
+      );
+    }
+  }
+
+  Future<void> sharePdfReport(int predictionId) async {
+    state = const ReportDownloadState(isDownloading: true);
+    try {
+      final file = await _repository.downloadPdfReport(predictionId);
+      state = ReportDownloadState(isDownloading: false, downloadedPath: file.path);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'DiaSense Clinical Assessment Report #$predictionId',
+        subject: 'DiaSense Diabetes Screening Report',
+      );
+    } catch (e) {
+      state = ReportDownloadState(
+        isDownloading: false,
+        error: e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', ''),
       );
     }
   }

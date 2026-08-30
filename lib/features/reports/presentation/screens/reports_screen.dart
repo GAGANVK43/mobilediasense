@@ -126,17 +126,27 @@ class _PdfReportsTabView extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'Download PDF',
                       icon: reportState.isDownloading
                           ? const SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                             )
-                          : const Icon(Icons.download_rounded, color: AppColors.primary),
+                          : const Icon(Icons.download_rounded, color: AppColors.primary, size: 22),
                       onPressed: reportState.isDownloading
                           ? null
                           : () {
                               ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(predId);
+                            },
+                    ),
+                    IconButton(
+                      tooltip: 'Share Report',
+                      icon: const Icon(Icons.share_outlined, color: AppColors.textSecondaryLight, size: 20),
+                      onPressed: reportState.isDownloading
+                          ? null
+                          : () {
+                              ref.read(reportNotifierProvider.notifier).sharePdfReport(predId);
                             },
                     ),
                   ],

@@ -9,6 +9,7 @@ abstract class NearbyCareRemoteDataSource {
     double? longitude,
     String? query,
     String type = 'hospital',
+    int radius = 5000,
   });
 }
 
@@ -23,6 +24,7 @@ class NearbyCareRemoteDataSourceImpl implements NearbyCareRemoteDataSource {
     double? longitude,
     String? query,
     String type = 'hospital',
+    int radius = 5000,
   }) async {
     final response = await _client.get(
       ApiEndpoints.nearbyCare,
@@ -31,6 +33,7 @@ class NearbyCareRemoteDataSourceImpl implements NearbyCareRemoteDataSource {
         if (longitude != null) 'longitude': longitude,
         if (query != null && query.isNotEmpty) 'query': query,
         'type': type,
+        'radius': radius,
       },
     );
 

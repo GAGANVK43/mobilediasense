@@ -15,8 +15,8 @@ class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
 
   @override
   Future<File> downloadPdfReport(int predictionId) async {
-    final tempDir = await getTemporaryDirectory();
-    final filePath = '/DiaSense_Report_.pdf';
+    final tempDir = await getApplicationDocumentsDirectory();
+    final filePath = '${tempDir.path}/DiaSense_Diabetes_Report_$predictionId.pdf';
 
     await _client.dio.download(
       ApiEndpoints.reportPdf(predictionId),

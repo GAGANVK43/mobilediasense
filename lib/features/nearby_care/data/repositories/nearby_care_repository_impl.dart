@@ -13,12 +13,14 @@ class NearbyCareRepositoryImpl implements NearbyCareRepository {
     double? longitude,
     String? query,
     String type = 'hospital',
+    int radius = 5000,
   }) {
     return _remoteDataSource.getNearbyFacilities(
       latitude: latitude,
       longitude: longitude,
       query: query,
       type: type,
+      radius: radius,
     );
   }
 }

@@ -123,7 +123,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // 3. Account & Security Settings
+            // 3. Health Activity
+            Text('Health Activity', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            HealthCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.history_edu_rounded, color: AppColors.primary),
+                    title: const Text('Assessment History'),
+                    subtitle: const Text('View past metabolic risk screenings and vitals', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                    onTap: () => context.push('/history'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary),
+                    title: const Text('Clinical PDF Reports'),
+                    subtitle: const Text('Download and share official metabolic reports', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                    onTap: () => context.push('/reports'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // 4. Account & Security Settings
             Text('Account & Security', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.sm),
             HealthCard(

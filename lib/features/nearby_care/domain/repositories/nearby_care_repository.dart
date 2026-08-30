@@ -6,5 +6,6 @@ abstract class NearbyCareRepository {
     double? longitude,
     String? query,
     String type = 'hospital',
+    int radius = 5000,
   });
 }

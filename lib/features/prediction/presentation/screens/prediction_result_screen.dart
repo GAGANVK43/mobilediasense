@@ -293,17 +293,37 @@ class PredictionResultScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // 5. Action Buttons
-            AppButton(
-              text: 'Download Official PDF Report',
-              icon: Icons.picture_as_pdf_outlined,
-              onPressed: () {
-                final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 1;
-                ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(intPredId);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Downloading PDF Medical Report...')),
-                );
-              },
+            // 5. Action Buttons: Download PDF & Share Report
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: AppButton(
+                    text: 'Download PDF Report',
+                    icon: Icons.picture_as_pdf_outlined,
+                    onPressed: () {
+                      final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 1;
+                      ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(intPredId);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Downloading Clinical PDF Report...')),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  flex: 2,
+                  child: AppButton(
+                    text: 'Share',
+                    icon: Icons.share_rounded,
+                    isOutlined: true,
+                    onPressed: () {
+                      final intPredId = id is int ? id : int.tryParse(id.toString()) ?? 1;
+                      ref.read(reportNotifierProvider.notifier).sharePdfReport(intPredId);
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.sm),
 
