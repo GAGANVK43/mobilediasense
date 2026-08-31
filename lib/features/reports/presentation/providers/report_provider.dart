@@ -35,7 +35,14 @@ class ReportNotifier extends StateNotifier<ReportDownloadState> {
     try {
       final file = await _repository.downloadPdfReport(predictionId);
       state = ReportDownloadState(isDownloading: false, downloadedPath: file.path);
-      await OpenFilex.open(file.path);
+      final openRes = await OpenFilex.open(file.path);
+      if (openRes.type != ResultType.done) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'DiaSense Clinical Assessment Report #$predictionId',
+          subject: 'DiaSense Diabetes Screening Report',
+        );
+      }
     } catch (e) {
       state = ReportDownloadState(
         isDownloading: false,

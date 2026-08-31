@@ -46,6 +46,108 @@ class ReportsAndCareScreen extends ConsumerWidget {
 class _PdfReportsTabView extends ConsumerWidget {
   const _PdfReportsTabView();
 
+  Widget _buildHeroCard(BuildContext context, WidgetRef ref, ReportDownloadState reportState) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.primary, size: 24),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Latest Clinical PDF Report',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: AppColors.textPrimaryLight),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Official AI Diabetes Screening Report',
+                      style: TextStyle(fontSize: 11.5, color: AppColors.textSecondaryLight),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: AppButton(
+                  text: reportState.isDownloading ? 'Downloading...' : 'Download PDF',
+                  icon: Icons.download_rounded,
+                  isLoading: reportState.isDownloading,
+                  onPressed: reportState.isDownloading
+                      ? null
+                      : () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('⏳ Generating & Downloading PDF Report...')),
+                          );
+                          await ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(0);
+                          final s = ref.read(reportNotifierProvider);
+                          if (s.error != null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Download failed: ${s.error}'), backgroundColor: Colors.red),
+                            );
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('✅ Report PDF downloaded successfully!'), backgroundColor: Colors.green),
+                            );
+                          }
+                        },
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                flex: 2,
+                child: AppButton(
+                  text: 'Share',
+                  icon: Icons.share_rounded,
+                  isOutlined: true,
+                  onPressed: reportState.isDownloading
+                      ? null
+                      : () {
+                          ref.read(reportNotifierProvider.notifier).sharePdfReport(0);
+                        },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final predictionsAsync = ref.watch(predictionHistoryProvider);
@@ -66,50 +168,11 @@ class _PdfReportsTabView extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
-              Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.verified_outlined, color: Colors.white, size: 28),
-                    const SizedBox(width: AppSpacing.md),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Download Latest Medical Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13.5)),
-                          Text('Directly retrieve and view your latest clinical PDF', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: reportState.isDownloading
-                          ? null
-                          : () {
-                              ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(0);
-                            },
-                      icon: const Icon(Icons.download_rounded, size: 14),
-                      label: const Text('Download', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0F766E),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildHeroCard(context, ref, reportState),
+              const SizedBox(height: AppSpacing.sm),
               EmptyStateView(
                 title: 'No Previous Screening History',
-                description: 'Take a new health assessment or download your latest report above.',
+                description: 'You can download your latest report above or take a fresh assessment.',
                 actionText: 'Start Assessment',
                 onAction: () => context.push('/assessment/wizard'),
               ),
@@ -122,47 +185,7 @@ class _PdfReportsTabView extends ConsumerWidget {
           itemCount: predictions.length + 1,
           itemBuilder: (context, index) {
             if (index == 0) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.verified_outlined, color: Colors.white, size: 28),
-                    const SizedBox(width: AppSpacing.md),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Latest Health Assessment Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13.5)),
-                          Text('Directly generate & download your latest clinical report', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: reportState.isDownloading
-                          ? null
-                          : () {
-                              ref.read(reportNotifierProvider.notifier).downloadAndOpenPdf(0);
-                            },
-                      icon: const Icon(Icons.download_rounded, size: 14),
-                      label: const Text('Download', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0F766E),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              return _buildHeroCard(context, ref, reportState);
             }
 
             final p = predictions[index - 1];

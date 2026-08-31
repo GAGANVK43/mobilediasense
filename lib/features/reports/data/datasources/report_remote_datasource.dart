@@ -15,9 +15,18 @@ class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
 
   @override
   Future<File> downloadPdfReport(int predictionId) async {
-    final tempDir = await getApplicationDocumentsDirectory();
-    final fileName = predictionId > 0 ? 'DiaSense_Diabetes_Report_$predictionId.pdf' : 'DiaSense_Diabetes_Report_latest.pdf';
+    final tempDir = await getTemporaryDirectory();
+    final fileName = predictionId > 0
+        ? 'DiaSense_Diabetes_Report_$predictionId.pdf'
+        : 'DiaSense_Diabetes_Report_latest.pdf';
     final filePath = '${tempDir.path}/$fileName';
+
+    final options = Options(
+      responseType: ResponseType.bytes,
+      headers: {
+        'Accept': 'application/pdf',
+      },
+    );
 
     try {
       final endpoint = predictionId > 0
@@ -26,15 +35,22 @@ class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
       await _client.dio.download(
         endpoint,
         filePath,
+        options: options,
       );
     } catch (_) {
       // If specific ID fails, automatically download latest assessment report
       await _client.dio.download(
         '/api/reports/latest/pdf',
         filePath,
+        options: options,
       );
     }
 
-    return File(filePath);
+    final file = File(filePath);
+    if (!await file.exists() || await file.length() == 0) {
+      throw Exception('Failed to write PDF file to device storage.');
+    }
+
+    return file;
   }
 }

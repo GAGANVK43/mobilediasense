@@ -17,7 +17,7 @@ class ApiInterceptor extends Interceptor {
       // "Could not validate credentials" errors across every screen.
       options.headers['Authorization'] = 'Bearer $token';
     }
-    options.headers['Accept'] = 'application/json';
+    options.headers['Accept'] ??= 'application/json';
     return handler.next(options);
   }
 
