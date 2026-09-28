@@ -155,10 +155,27 @@ class _AssessmentWizardScreenState extends ConsumerState<AssessmentWizardScreen>
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? AppColors.riskHigh : AppColors.primary,
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                msg,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? AppColors.riskHigh : AppColors.primaryDark,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.only(bottom: 90, left: 16, right: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -232,7 +249,13 @@ class _AssessmentWizardScreenState extends ConsumerState<AssessmentWizardScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showSnackbar(e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', ''), isError: true);
+        String errMsg = e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', '');
+        if (errMsg.toLowerCase().contains('internal server error') || errMsg.toLowerCase().contains('500')) {
+          errMsg = 'Health assessment service is temporarily unavailable. Please try again.';
+        } else if (errMsg.toLowerCase().contains('socket') || errMsg.toLowerCase().contains('connection')) {
+          errMsg = 'Unable to connect to server. Please check your network connection.';
+        }
+        _showSnackbar(errMsg, isError: true);
       }
     } finally {
       if (mounted) {
