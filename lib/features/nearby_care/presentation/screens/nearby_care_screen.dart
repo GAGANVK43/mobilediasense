@@ -19,10 +19,12 @@ class NearbyCareScreen extends ConsumerStatefulWidget {
 
 class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
   final _searchCtrl = TextEditingController();
+  final _searchFocusNode = FocusNode();
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -64,11 +66,11 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
               ),
               const SizedBox(height: 12),
 
-              // GPS Option (Swiggy / Zomato style)
+              // Mode 1: GPS Option
               InkWell(
                 onTap: () {
                   Navigator.pop(ctx);
-                  ref.read(nearbyCareProvider.notifier).searchByCurrentGps();
+                  ref.read(nearbyCareProvider.notifier).useCurrentLocation();
                 },
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -85,8 +87,8 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Use Current Location (GPS)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.primaryDark)),
-                            Text('Detect using device satellite GPS coordinates', style: TextStyle(fontSize: 11, color: AppColors.textSecondaryLight)),
+                            Text('Use My Current Location (GPS)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.primaryDark)),
+                            Text('Automatically detect nearby clinics using satellite GPS', style: TextStyle(fontSize: 11, color: AppColors.textSecondaryLight)),
                           ],
                         ),
                       ),
@@ -97,11 +99,11 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Manual Search Field
+              // Mode 2: Manual Search Field
               TextField(
                 controller: _searchCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Search city or area (e.g. Indiranagar, Whitefield)',
+                  hintText: 'Enter city, area, or PIN code (e.g. 560049)',
                   hintStyle: const TextStyle(fontSize: 13),
                   prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                   suffixIcon: IconButton(
@@ -110,7 +112,7 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                       final val = _searchCtrl.text.trim();
                       if (val.isNotEmpty) {
                         Navigator.pop(ctx);
-                        ref.read(nearbyCareProvider.notifier).searchCare(query: val, isManual: true);
+                        ref.read(nearbyCareProvider.notifier).searchManualLocation(val);
                       }
                     },
                   ),
@@ -120,13 +122,13 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                 onSubmitted: (val) {
                   if (val.trim().isNotEmpty) {
                     Navigator.pop(ctx);
-                    ref.read(nearbyCareProvider.notifier).searchCare(query: val.trim(), isManual: true);
+                    ref.read(nearbyCareProvider.notifier).searchManualLocation(val.trim());
                   }
                 },
               ),
               const SizedBox(height: 16),
 
-              // Popular Cities (Swiggy / Zomato style)
+              // Popular Cities Quick Chips
               const Text('Popular Cities', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight)),
               const SizedBox(height: 8),
               Wrap(
@@ -134,22 +136,25 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                 runSpacing: 8,
                 children: [
                   'Bengaluru',
+                  'Whitefield',
+                  'Indiranagar',
+                  'Koramangala',
+                  '560049',
+                  'Mysuru',
                   'Mumbai',
                   'New Delhi',
                   'Hyderabad',
                   'Chennai',
-                  'Mysuru',
                   'Pune',
-                  'Kolkata',
-                ].map((city) {
+                ].map((loc) {
                   return ActionChip(
-                    avatar: const Icon(Icons.location_city_rounded, size: 14, color: AppColors.primary),
-                    label: Text(city, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+                    avatar: const Icon(Icons.location_on_outlined, size: 14, color: AppColors.primary),
+                    label: Text(loc, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
                     backgroundColor: Colors.grey.shade100,
                     onPressed: () {
-                      _searchCtrl.text = city;
+                      _searchCtrl.text = loc;
                       Navigator.pop(ctx);
-                      ref.read(nearbyCareProvider.notifier).searchCare(query: city, isManual: true);
+                      ref.read(nearbyCareProvider.notifier).searchManualLocation(loc);
                     },
                   );
                 }).toList(),
@@ -164,20 +169,58 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
   @override
   Widget build(BuildContext context) {
     final careState = ref.watch(nearbyCareProvider);
-    final isGps = careState.locationState == LocationState.gpsSuccess;
+    final isGps = careState.locationMode == LocationMode.currentGps;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        // 1. Swiggy / Zomato Style Top Location Header
+        // 1. Dual Mode Top Quick Action Buttons
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: careState.isLoading
+                    ? null
+                    : () => ref.read(nearbyCareProvider.notifier).useCurrentLocation(),
+                icon: const Icon(Icons.my_location_rounded, size: 16),
+                label: const Text('📍 My Location', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isGps ? AppColors.primary : AppColors.surfaceLight,
+                  foregroundColor: isGps ? Colors.white : AppColors.textPrimaryLight,
+                  elevation: isGps ? 1 : 0,
+                  side: BorderSide(color: isGps ? AppColors.primary : AppColors.borderLight),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _showLocationPickerSheet(context, careState),
+                icon: const Icon(Icons.search_rounded, size: 16, color: AppColors.primary),
+                label: const Text('🔎 Search Area', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // 2. Selected Location Card with Change Action
         InkWell(
           onTap: () => _showLocationPickerSheet(context, careState),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: isGps ? AppColors.primarySurface : Colors.white,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(color: isGps ? AppColors.primary : AppColors.borderLight),
+              border: Border.all(color: isGps ? AppColors.primary.withOpacity(0.5) : AppColors.borderLight),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.03),
@@ -198,18 +241,12 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            isGps ? 'GPS Location' : 'Selected Location',
-                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: AppColors.textSecondaryLight),
-                        ],
+                      Text(
+                        isGps ? '📍 Current Location' : '📍 Selected Location',
+                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.textSecondaryLight),
                       ),
                       Text(
-                        careState.searchQuery,
+                        careState.displayName,
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimaryLight),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -228,8 +265,35 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
         ),
         const SizedBox(height: AppSpacing.sm),
 
-        // 2. Permission Denied / Settings Banner if needed
-        if (careState.locationState == LocationState.permissionDeniedForever) ...[
+        // 3. Location Permission Banners if Needed
+        if (careState.locationState == LocationState.permissionDenied) ...[
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.riskModerateBg,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.riskModerate),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Location permission is required to detect GPS automatically.',
+                    style: TextStyle(fontSize: 11, color: AppColors.riskModerate, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => ref.read(nearbyCareProvider.notifier).useCurrentLocation(),
+                  child: const Text('Allow', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+
+        if (careState.locationState == LocationState.permissionDeniedForever || careState.locationState == LocationState.serviceDisabled) ...[
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
@@ -240,15 +304,17 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
               children: [
                 const Icon(Icons.warning_amber_rounded, size: 18, color: AppColors.riskModerate),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'GPS permission disabled in settings.',
-                    style: TextStyle(fontSize: 11, color: AppColors.riskModerate, fontWeight: FontWeight.w600),
+                    careState.locationState == LocationState.serviceDisabled
+                        ? 'Device GPS is turned off.'
+                        : 'GPS permission disabled in settings.',
+                    style: const TextStyle(fontSize: 11, color: AppColors.riskModerate, fontWeight: FontWeight.w600),
                   ),
                 ),
                 TextButton(
                   onPressed: () => Geolocator.openAppSettings(),
-                  child: const Text('Open Settings', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                  child: const Text('Settings', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
@@ -256,24 +322,32 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
           const SizedBox(height: AppSpacing.sm),
         ],
 
-        // 3. Location Search Field
+        // 4. Quick Location Search Input Field
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _searchCtrl,
+                focusNode: _searchFocusNode,
                 decoration: InputDecoration(
-                  hintText: 'Search city/area (e.g. Bengaluru, Mumbai, Indiranagar)',
+                  hintText: 'Enter city, area or PIN code (e.g. 560049)',
                   hintStyle: const TextStyle(fontSize: 12.5),
                   prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.primary),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () => setState(() => _searchCtrl.clear()),
+                        )
+                      : null,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                 ),
+                onChanged: (_) => setState(() {}),
                 onSubmitted: (val) {
                   if (val.trim().isNotEmpty) {
-                    ref.read(nearbyCareProvider.notifier).searchCare(query: val.trim(), isManual: true);
+                    ref.read(nearbyCareProvider.notifier).searchManualLocation(val.trim());
                   }
                 },
               ),
@@ -285,7 +359,7 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
               onPressed: () {
                 final query = _searchCtrl.text.trim();
                 if (query.isNotEmpty) {
-                  ref.read(nearbyCareProvider.notifier).searchCare(query: query, isManual: true);
+                  ref.read(nearbyCareProvider.notifier).searchManualLocation(query);
                 }
               },
             ),
@@ -293,14 +367,14 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
         ),
         const SizedBox(height: AppSpacing.sm),
 
-        // 4. Type Filter Chips & Radius / Sort Row
+        // 5. Category Selection Chips (Hospitals & Clinics vs Diagnostic Labs)
         Row(
           children: [
             ChoiceChip(
               label: const Text('🏥 Hospitals & Clinics'),
               selected: careState.activeType == 'hospital',
               onSelected: (val) {
-                if (val) ref.read(nearbyCareProvider.notifier).searchCare(type: 'hospital');
+                if (val) ref.read(nearbyCareProvider.notifier).changeCategory('hospital');
               },
             ),
             const SizedBox(width: AppSpacing.xs),
@@ -308,14 +382,14 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
               label: const Text('🔬 Diagnostic Labs'),
               selected: careState.activeType == 'laboratory',
               onSelected: (val) {
-                if (val) ref.read(nearbyCareProvider.notifier).searchCare(type: 'laboratory');
+                if (val) ref.read(nearbyCareProvider.notifier).changeCategory('laboratory');
               },
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.xs),
 
-        // Radius Filters & Sort Dropdown Row
+        // 6. Radius & Sorting Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -328,7 +402,7 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(right: 4),
                     child: InkWell(
-                      onTap: () => ref.read(nearbyCareProvider.notifier).searchCare(radius: r),
+                      onTap: () => ref.read(nearbyCareProvider.notifier).changeRadius(r),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
@@ -349,7 +423,6 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                 }),
               ],
             ),
-            // Sort Dropdown
             DropdownButton<String>(
               value: careState.sortBy,
               underline: const SizedBox(),
@@ -368,8 +441,29 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // 5. Facilities List
+        // 7. Facilities List / Loading / Empty / Error State
         if (careState.isLoading) ...[
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Finding healthcare facilities nearby...',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondaryLight, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
           const SkeletonLoader(width: double.infinity, height: 90),
           const SizedBox(height: AppSpacing.sm),
           const SkeletonLoader(width: double.infinity, height: 90),
@@ -378,14 +472,20 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
         ] else if (careState.error != null) ...[
           ErrorStateView(
             message: careState.error!,
-            onRetry: () => ref.read(nearbyCareProvider.notifier).searchCare(),
+            onRetry: () => ref.read(nearbyCareProvider.notifier).useCurrentLocation(),
           ),
         ] else if (careState.facilities.isEmpty) ...[
           EmptyStateView(
-            title: 'No Nearby Facilities Found',
-            description: 'Try expanding your search radius to 10km or 25km, or search for a nearby city area.',
-            actionText: 'Expand Radius (25 km)',
-            onAction: () => ref.read(nearbyCareProvider.notifier).searchCare(radius: 25000),
+            title: 'No ${careState.activeType == "hospital" ? "Hospitals or Clinics" : "Diagnostic Labs"} Found within ${careState.radiusMeters ~/ 1000} km',
+            description: 'Try expanding your search radius or search for a nearby city area or PIN code.',
+            actionText: careState.radiusMeters < 25000 ? 'Search within 25 km' : 'Search City Manually',
+            onAction: () {
+              if (careState.radiusMeters < 25000) {
+                ref.read(nearbyCareProvider.notifier).changeRadius(25000);
+              } else {
+                _showLocationPickerSheet(context, careState);
+              }
+            },
           ),
         ] else ...[
           Padding(
@@ -480,7 +580,7 @@ class _NearbyCareScreenState extends ConsumerState<NearbyCareScreen> {
                     const Divider(height: 1),
                     const SizedBox(height: 6),
 
-                    // Actions: Get Directions and Call
+                    // Actions: Get Directions and Call Facility
                     Row(
                       children: [
                         if (fac.mapsUrl != null)

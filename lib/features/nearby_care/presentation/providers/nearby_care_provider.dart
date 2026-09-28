@@ -12,14 +12,17 @@ final nearbyCareRepositoryProvider = Provider<NearbyCareRepository>((ref) {
   return NearbyCareRepositoryImpl(remote);
 });
 
+enum LocationMode { currentGps, manual }
+
 enum LocationState {
   initial,
   locating,
   gpsSuccess,
+  manualSuccess,
   permissionDenied,
   permissionDeniedForever,
   serviceDisabled,
-  manualSearch,
+  error,
 }
 
 class NearbyCareState {
@@ -27,7 +30,8 @@ class NearbyCareState {
   final bool isLoading;
   final String? error;
   final String activeType;
-  final String searchQuery;
+  final String displayName;
+  final LocationMode locationMode;
   final LocationState locationState;
   final double? latitude;
   final double? longitude;
@@ -39,10 +43,11 @@ class NearbyCareState {
     this.isLoading = false,
     this.error,
     this.activeType = 'hospital',
-    this.searchQuery = 'Bengaluru',
+    this.displayName = 'Bengaluru',
+    this.locationMode = LocationMode.manual,
     this.locationState = LocationState.initial,
-    this.latitude,
-    this.longitude,
+    this.latitude = 12.9716,
+    this.longitude = 77.5946,
     this.radiusMeters = 5000,
     this.sortBy = 'distance',
   });
@@ -52,7 +57,8 @@ class NearbyCareState {
     bool? isLoading,
     String? error,
     String? activeType,
-    String? searchQuery,
+    String? displayName,
+    LocationMode? locationMode,
     LocationState? locationState,
     double? latitude,
     double? longitude,
@@ -64,7 +70,8 @@ class NearbyCareState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       activeType: activeType ?? this.activeType,
-      searchQuery: searchQuery ?? this.searchQuery,
+      displayName: displayName ?? this.displayName,
+      locationMode: locationMode ?? this.locationMode,
       locationState: locationState ?? this.locationState,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
@@ -81,35 +88,32 @@ class NearbyCareNotifier extends StateNotifier<NearbyCareState> {
     initLocationAndSearch();
   }
 
-  String _normalizeCity(String raw) {
-    final lower = raw.trim().toLowerCase();
-    if (lower.contains('bangalore') || lower.contains('bengaluru')) return 'Bengaluru';
-    if (lower.contains('mysore') || lower.contains('mysuru')) return 'Mysuru';
-    if (lower.contains('bombay') || lower.contains('mumbai')) return 'Mumbai';
-    if (lower.contains('madras') || lower.contains('chennai')) return 'Chennai';
-    if (lower.contains('calcutta') || lower.contains('kolkata')) return 'Kolkata';
-    if (lower.contains('hubli') || lower.contains('hubballi')) return 'Hubballi';
-    if (lower.contains('delhi') || lower.contains('new delhi')) return 'New Delhi';
-    if (lower.contains('hyderabad') || lower.contains('secunderabad')) return 'Hyderabad';
-    return raw.trim();
-  }
-
   Future<void> initLocationAndSearch() async {
-    // Attempt automatic GPS location first
-    await searchByCurrentGps(silentFallback: true);
+    // Mode 1: Automatically attempt current GPS location on first load
+    await useCurrentLocation(silentOnDenial: true);
   }
 
-  Future<void> searchByCurrentGps({bool silentFallback = false}) async {
-    state = state.copyWith(isLoading: true, error: null, locationState: LocationState.locating);
+  /// MODE 1: Use User's Current GPS Location Directly
+  Future<void> useCurrentLocation({bool silentOnDenial = false}) async {
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      locationState: LocationState.locating,
+    );
 
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         state = state.copyWith(
+          isLoading: false,
           locationState: LocationState.serviceDisabled,
-          error: silentFallback ? null : 'Location services (GPS) are disabled on your device. Please turn on GPS or search manually.',
+          error: silentOnDenial
+              ? null
+              : 'Location services (GPS) are turned off. Please turn on GPS or search a location manually.',
         );
-        if (silentFallback) await searchCare(query: 'Bengaluru', isManual: true);
+        if (silentOnDenial) {
+          await searchManualLocation('Bengaluru');
+        }
         return;
       }
 
@@ -118,30 +122,41 @@ class NearbyCareNotifier extends StateNotifier<NearbyCareState> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           state = state.copyWith(
+            isLoading: false,
             locationState: LocationState.permissionDenied,
-            error: silentFallback ? null : 'Location permission was denied. You can search for your city or area manually.',
+            error: silentOnDenial
+                ? null
+                : 'Location permission is required to detect nearby facilities automatically. You can also search manually.',
           );
-          if (silentFallback) await searchCare(query: 'Bengaluru', isManual: true);
+          if (silentOnDenial) {
+            await searchManualLocation('Bengaluru');
+          }
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
         state = state.copyWith(
+          isLoading: false,
           locationState: LocationState.permissionDeniedForever,
-          error: silentFallback ? null : 'Location permission is permanently denied in settings. Please enable it in App Settings or search manually.',
+          error: silentOnDenial
+              ? null
+              : 'Location permission is disabled in system settings. Please enable it in Settings or search manually.',
         );
-        if (silentFallback) await searchCare(query: 'Bengaluru', isManual: true);
+        if (silentOnDenial) {
+          await searchManualLocation('Bengaluru');
+        }
         return;
       }
 
-      // Permission granted: Get device coordinates
+      // Step 3: Obtain GPS coordinates
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 10),
       );
 
-      final list = await _repository.getNearbyFacilities(
+      // Step 4: Use GPS coordinates directly for nearby search
+      final facilities = await _repository.getNearbyFacilities(
         latitude: position.latitude,
         longitude: position.longitude,
         type: state.activeType,
@@ -149,74 +164,150 @@ class NearbyCareNotifier extends StateNotifier<NearbyCareState> {
       );
 
       state = state.copyWith(
-        facilities: _applySort(list, state.sortBy),
+        facilities: _applySort(facilities, state.sortBy),
         isLoading: false,
+        error: null,
+        locationMode: LocationMode.currentGps,
         locationState: LocationState.gpsSuccess,
         latitude: position.latitude,
         longitude: position.longitude,
-        searchQuery: 'My Current Location (${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)})',
+        displayName: 'Current Location (${position.latitude.toStringAsFixed(2)}°N, ${position.longitude.toStringAsFixed(2)}°E)',
       );
     } catch (e) {
-      if (silentFallback) {
-        await searchCare(query: 'Bengaluru', isManual: true);
+      if (silentOnDenial) {
+        await searchManualLocation('Bengaluru');
       } else {
         state = state.copyWith(
           isLoading: false,
-          error: 'Could not obtain GPS location (${e.toString().replaceAll('Exception: ', '')}). Try searching for your city manually.',
+          locationState: LocationState.error,
+          error: 'Unable to access your current GPS location. Please try again or search manually.',
         );
       }
     }
   }
 
-  Future<void> searchCare({
-    String? query,
-    String? type,
-    int? radius,
-    String? sortBy,
-    bool isManual = false,
-  }) async {
-    final searchType = type ?? state.activeType;
-    final searchQ = query != null ? _normalizeCity(query) : state.searchQuery;
-    final rad = radius ?? state.radiusMeters;
-    final sort = sortBy ?? state.sortBy;
+  /// MODE 2: Manually Search Any City, Area, or 6-digit Indian PIN Code
+  Future<void> searchManualLocation(String query) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return;
 
     state = state.copyWith(
       isLoading: true,
       error: null,
-      activeType: searchType,
-      searchQuery: searchQ,
-      radiusMeters: rad,
-      sortBy: sort,
-      locationState: isManual ? LocationState.manualSearch : state.locationState,
+      displayName: cleanQuery,
+      locationMode: LocationMode.manual,
     );
 
     try {
-      List<FacilityModel> list;
-      if (!isManual && state.latitude != null && state.longitude != null && query == null) {
-        // Query by coordinates
-        list = await _repository.getNearbyFacilities(
-          latitude: state.latitude,
-          longitude: state.longitude,
-          type: searchType,
-          radius: rad,
-        );
-      } else {
-        // Query by normalized city / area text
-        list = await _repository.getNearbyFacilities(
-          query: searchQ,
-          type: searchType,
-          radius: rad,
-        );
+      final facilities = await _repository.getNearbyFacilities(
+        query: cleanQuery,
+        type: state.activeType,
+        radius: state.radiusMeters,
+      );
+
+      // Update coordinates if facilities returned
+      double? lat = state.latitude;
+      double? lon = state.longitude;
+      if (facilities.isNotEmpty) {
+        // Average / center near first facility
+        lat = facilities.first.latitude;
+        lon = facilities.first.longitude;
       }
 
       state = state.copyWith(
-        facilities: _applySort(list, sort),
+        facilities: _applySort(facilities, state.sortBy),
         isLoading: false,
+        error: null,
+        latitude: lat,
+        longitude: lon,
+        displayName: cleanQuery.titleCase,
+        locationState: LocationState.manualSuccess,
       );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString().replaceAll('ApiException: ', '').replaceAll('Exception: ', ''),
+        locationState: LocationState.error,
+        error: 'Location not found. Try entering a city (e.g. Bengaluru, Mysuru, Mumbai), area (e.g. Whitefield, Indiranagar), or 6-digit PIN code (e.g. 560049).',
+      );
+    }
+  }
+
+  /// Change Category (Hospitals & Clinics vs Diagnostic Labs)
+  Future<void> changeCategory(String type) async {
+    if (state.activeType == type && !state.isLoading) return;
+
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      activeType: type,
+    );
+
+    try {
+      List<FacilityModel> list;
+      if (state.latitude != null && state.longitude != null) {
+        list = await _repository.getNearbyFacilities(
+          latitude: state.latitude,
+          longitude: state.longitude,
+          type: type,
+          radius: state.radiusMeters,
+        );
+      } else {
+        list = await _repository.getNearbyFacilities(
+          query: state.displayName,
+          type: type,
+          radius: state.radiusMeters,
+        );
+      }
+
+      state = state.copyWith(
+        facilities: _applySort(list, state.sortBy),
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Unable to load healthcare facilities right now. Please try again.',
+      );
+    }
+  }
+
+  /// Change Search Radius (5km, 10km, 25km) using existing coordinates
+  Future<void> changeRadius(int radiusMeters) async {
+    if (state.radiusMeters == radiusMeters && !state.isLoading) return;
+
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      radiusMeters: radiusMeters,
+    );
+
+    try {
+      List<FacilityModel> list;
+      if (state.latitude != null && state.longitude != null) {
+        list = await _repository.getNearbyFacilities(
+          latitude: state.latitude,
+          longitude: state.longitude,
+          type: state.activeType,
+          radius: radiusMeters,
+        );
+      } else {
+        list = await _repository.getNearbyFacilities(
+          query: state.displayName,
+          type: state.activeType,
+          radius: radiusMeters,
+        );
+      }
+
+      state = state.copyWith(
+        facilities: _applySort(list, state.sortBy),
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Unable to load healthcare facilities for this radius. Please try again.',
       );
     }
   }
@@ -235,10 +326,18 @@ class NearbyCareNotifier extends StateNotifier<NearbyCareState> {
     } else if (sortBy == 'rating') {
       sorted.sort((a, b) => (b.rating ?? 0.0).compareTo(a.rating ?? 0.0));
     } else {
-      // Default: distance
       sorted.sort((a, b) => a.distance.compareTo(b.distance));
     }
     return sorted;
+  }
+}
+
+extension on String {
+  String get titleCase {
+    if (isEmpty) return this;
+    return split(' ')
+        .map((str) => str.isNotEmpty ? '${str[0].toUpperCase()}${str.substring(1)}' : '')
+        .join(' ');
   }
 }
 
