@@ -2,28 +2,31 @@ import 'package:equatable/equatable.dart';
 
 class ContributingFactor extends Equatable {
   final String feature;
+  final String value;
   final double score;
-  final String impact; // "High Impact", "Moderate Impact", "Low Impact"
+  final String impact; // "High Risk", "Moderate Risk", "Optimal"
   final String description;
 
   const ContributingFactor({
     required this.feature,
-    required this.score,
+    this.value = '',
+    this.score = 0.0,
     required this.impact,
     this.description = '',
   });
 
   factory ContributingFactor.fromJson(Map<String, dynamic> json) {
     return ContributingFactor(
-      feature: json['feature']?.toString() ?? 'Factor',
+      feature: (json['factor'] ?? json['feature'] ?? 'Factor').toString(),
+      value: (json['value'] ?? '').toString(),
       score: (json['score'] as num?)?.toDouble() ?? 0.0,
-      impact: json['impact']?.toString() ?? 'Moderate',
-      description: json['description']?.toString() ?? '',
+      impact: (json['impact'] ?? 'Moderate').toString(),
+      description: (json['description'] ?? '').toString(),
     );
   }
 
   @override
-  List<Object?> get props => [feature, score, impact];
+  List<Object?> get props => [feature, value, score, impact, description];
 }
 
 class PredictionResultModel extends Equatable {
@@ -60,7 +63,7 @@ class PredictionResultModel extends Equatable {
       assessmentId: json['assessment_id'] as int?,
       prediction: json['prediction'] as String? ?? 'Non-Diabetic',
       riskPercentage: (json['risk_percentage'] as num?)?.toDouble() ?? 0.0,
-      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.88,
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 95.0,
       recommendation: json['recommendation'] as String? ??
           'Maintain a balanced, nutrient-dense diet and stay physically active.',
       contributingFactors: factors,
